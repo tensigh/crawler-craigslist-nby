@@ -1,0 +1,22 @@
+# -*- coding: utf-8 -*-
+import scrapy
+from craigslistnby.items import TfawItem
+
+class CraigslistSpider(scrapy.Spider):
+    name = 'rentcrawl'
+    allowed_domains = ['sfbay.craigslist.org']
+    start_urls = ['https://sfbay.craigslist.org/d/apts-housing-for-rent/search/nby/apa',]
+
+    def parse(self, response):
+        for href in response.css('a.regularlinksmallbold.product-profile-link::attr(href)'):
+        	url = response.urljoin(href.extract())
+        	yield scrapy.Request(url, callback=self.parse_detail_page)
+        	print("URL is",url)
+
+    def parse_detail_page(self, response):
+        comic = TfawItem()
+        comic['title'] = response.css('div.iconistan + b span.blackheader::text').extract()
+        comic['price'] = response.css('span.blackheader ~ span.redheader::text').re('[$]\d+\.\d+')
+        comic['upc'] = response.xpath('/html/body/table[1]/tr/td[4]/div[3]/table/tr/td/table/tr[6]/td[2]/text()').extract()
+        comic['url'] = response.url
+        yield comic
